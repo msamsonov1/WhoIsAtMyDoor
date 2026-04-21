@@ -1,0 +1,81 @@
+```python
+import face_recognition
+import cv2
+import numpy as np
+
+# 1. LOCAL DATABASE (Simulating information you might manually enter)
+# In a real scenario, you cannot legally scrape LinkedIn or Airport databases.
+known_people = {
+    "John Doe": {
+        "encoding": None, # Will be loaded below
+        "age": 30,
+        "school": "Stanford University",
+        "work": "Software Engineer at TechCorp"
+    },
+    "Jane Smith": {
+        "encoding": None,
+        "age": 28,
+        "school": "MIT",
+        "work": "Data Scientist at AI Labs"
+    }
+}
+
+def load_local_database():
+    """Load images from local storage and generate face encodings."""
+    # Example: Load a picture of John and Jane to 'train' the system
+    # john_image = face_recognition.load_image_file("john.jpg")
+    # known_people["John Doe"]["encoding"] = face_recognition.face_encodings(john_image)[0]
+    pass
+
+def start_doorbell_stream():
+    """Processes the front door camera feed."""
+    # '0' is the default webcam; replace with your RTSP URL for an IP camera
+    video_capture = cv2.VideoCapture(0)
+
+    print("Doorbell AI Active. Press 'q' to quit.")
+
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            break
+
+        # Convert to RGB for face_recognition library
+        rgb_frame = frame[:, :, ::-1]
+
+        # Find all faces in the current frame
+        face_locations = face_recognition.face_locations(rgb_frame)
+        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+        for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+            name = "Unknown Visitor"
+            info = ""
+
+            # Check if face matches anyone in our LOCAL database
+            for person_name, data in known_people.items():
+                if data["encoding"] is None: continue
+                
+                matches = face_recognition.compare_faces([data["encoding"]], face_encoding)
+                if True in matches:
+                    name = person_name
+                    info = f"{data['work']} | {data['school']}"
+
+            # Draw UI on the video feed
+            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+            cv2.putText(frame, name, (left + 6, bottom - 30), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1)
+            cv2.putText(frame, info, (left + 6, bottom - 10), cv2.FONT_HERSHEY_DUPLEX, 0.4, (255, 255, 255), 1)
+
+        cv2.imshow('Front Door AI', frame)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    video_capture.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    # Note: To run this, you need to install:
+    # pip install face_recognition opencv-python numpy
+    load_local_database()
+    start_doorbell_stream()
+
+```
